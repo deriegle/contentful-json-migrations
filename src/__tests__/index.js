@@ -1,46 +1,28 @@
-const diff = require("../src/index");
+const diff = require("../index");
 
 const contentfulExport = {
-  contentTypes: [
-    {
-      id: "blogPage",
-      name: "Blog Page",
-      fields: [
-        {
-          id: "title",
-          name: "Title",
-          type: "Symbol"
-        }
-      ]
-    }
-  ]
+  required: false,
+  contentTypes: ["blogPage"]
 };
 
 const localContent = {
-  contentTypes: [
-    {
-      id: "blogPage",
-      name: "Blog Page",
-      fields: [
-        {
-          id: "title",
-          name: "My title",
-          type: "Symbol",
-          required: true
-        },
-        {
-          id: "body",
-          name: "Body",
-          type: "RichText",
-          required: true
-        }
-      ]
-    }
-  ]
+  required: true,
+  contentTypes: ["homePage"]
 };
 
 describe("Contentful diffing tool", () => {
   test("works", () => {
-    expect(diff(contentfulExport, localContent)).toEqual({});
+    expect(diff(contentfulExport, localContent)).toEqual({
+      required: {
+        __new: true,
+        __old: false
+      },
+      model: {
+        id: {
+          __new: "homePage",
+          __old: "blogPage"
+        }
+      }
+    });
   });
 });
