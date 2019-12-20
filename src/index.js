@@ -2,8 +2,6 @@ const fs = require("fs");
 const jsonDiff = require("json-diff");
 const path = require("path");
 
-const migrations = [];
-
 const DIFF_TYPES = {
   NO_CHANGE: " ",
   ADDITION: "+",
@@ -21,34 +19,48 @@ function createFileName(contentTypeId) {
   );
 }
 
+function handleAdditionDiff(diff) {
+  const newContentType = diff;
+
+  const migrationText = `
+    module.exports = (migration) => {
+      const contentType = migration.createContentType('${newContentType.id}');
+
+      ${newContentType.name && `contentType.name('${newContentType.name}')`}
+      ${newContentType.description &&
+        `contentType.description('${newContentType.description}')`}
+    }
+    `;
+
+  fs.writeFileSync(createFileName(newContentType.id), migrationText, {
+    flag: "wx+"
+  });
+}
+
 function handleUpdateDiff(diff, index, currentJSON) {
   const original = currentJSON.contentTypes[index];
 
   const migrationText = `
-    module.exports = (migration) => {
-      const contentType = migration.editContentType(${original.id});
+module.exports = (migration) => {
+  const contentType = migration.editContentType('${original.id}');
 
-      ${Object.keys(diff).map(k => {
-        if (
-          typeof diff[k] === "object" &&
-          DEFAULT_CONTENT_TYPE_FIELDS.includes(k)
-        ) {
-          return `contentType.${k}(${diff[k].__new})`;
-        }
-      })}
+  ${Object.keys(diff).map(k => {
+    if (
+      typeof diff[k] === "object" &&
+      DEFAULT_CONTENT_TYPE_FIELDS.includes(k)
+    ) {
+      return `contentType.${k}('${diff[k].__new}')`;
     }
+  })}
+}
     `;
 
   fs.writeFileSync(createFileName(original.id), migrationText, {
     flag: "wx+"
   });
-
-  return contentMigration;
 }
 
 function buildMigrationsFromChanges(currentJSON, changes) {
-  console.log(changes);
-
   if (changes && changes.contentTypes && changes.contentTypes.length > 0) {
     changes.contentTypes.forEach(([changeType, diff], index) => {
       if (!diff || !changeType) {
@@ -59,11 +71,11 @@ function buildMigrationsFromChanges(currentJSON, changes) {
         case DIFF_TYPES.NO_CHANGE:
           return console.log("No change");
         case DIFF_TYPES.ADDITION:
-          return console.log("ADDITION", diff);
+          return handleAdditionDiff(diff);
         case DIFF_TYPES.DELETION:
           return console.log("DELETION", diff);
         case DIFF_TYPES.UPDATE:
-          return console.log(handleUpdateDiff(diff, index, currentJSON));
+          return handleUpdateDiff(diff, index, currentJSON);
         default:
           throw new Error(`I don\'t know about this: ${changeType}`);
       }
