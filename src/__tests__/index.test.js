@@ -50,18 +50,18 @@ describe("Contentful diffing tool", () => {
     const [firstCall, secondCall] = fs.writeFileSync.mock.calls;
 
     expect(firstCall[0]).toMatch(/migrations\/\d+-homePage.js$/);
-    expect(firstCall[1]).toMatch(/migration.editContentType\('homePage'\)/g);
-    expect(firstCall[1]).toMatch(/contentType.description\('Home Pages'\)/g);
+    expect(firstCall[1]).toMatch(/migration.editContentType\("homePage"\)/g);
+    expect(firstCall[1]).toMatch(/contentType.description\("Home Pages"\)/g);
     expect(firstCall[2]).toEqual({
       flag: "wx+"
     });
 
     expect(secondCall[0]).toMatch(/migrations\/\d+-thirdPage.js$/);
     expect(secondCall[1]).toMatch(
-      /migration.createContentType\('thirdPage'\)/g
+      /migration.createContentType\("thirdPage"\)/g
     );
-    expect(secondCall[1]).toMatch(/contentType.name\('Third Page'\)/g);
-    expect(secondCall[1]).toMatch(/contentType.description\('Third Page'\)/g);
+    expect(secondCall[1]).toMatch(/contentType.name\("Third Page"\)/g);
+    expect(secondCall[1]).toMatch(/contentType.description\("Third Page"\)/g);
     expect(secondCall[2]).toEqual({
       flag: "wx+"
     });
@@ -99,7 +99,12 @@ describe("Contentful diffing tool", () => {
     const [firstCall] = fs.writeFileSync.mock.calls;
 
     expect(firstCall[0]).toMatch(/migrations\/\d+-basicPage.js$/);
-    expect(firstCall[1]).toMatch(/migration.deleteContentType\('basicPage'\)/g);
+    expect(firstCall[1]).toMatch(
+      migrationContent(`
+        migration
+          .deleteContentType('basicPage');
+    `)
+    );
     expect(firstCall[2]).toEqual({
       flag: "wx+"
     });
@@ -140,15 +145,109 @@ describe("Contentful diffing tool", () => {
     const [firstCall] = fs.writeFileSync.mock.calls;
 
     expect(firstCall[0]).toMatch(/migrations\/\d+-homePage.js$/);
-    expect(firstCall[1]).toMatch(/migration.createContentType\('homePage'\)/g);
+    expect(firstCall[1]).toMatch(/migration.createContentType\("homePage"\)/g);
     expect(firstCall[1]).toMatch(
-      /contentType.createField\('headerText'\).name\('Header Text'\).type\('Symbol'\).required\(true\);/
+      migrationContent(`
+        contentType
+          .createField("headerText")
+          .name("Header Text")
+          .type("Symbol")
+          .required(true);
+     `)
     );
     expect(firstCall[1]).toMatch(
-      /contentType.createField\('bodyText'\).name\('Body Text'\).type\('RichText'\).required\(true\);/
+      migrationContent(`
+        contentType
+          .createField("bodyText")
+          .name("Body Text")
+          .type("RichText")
+          .required(true)
+      `)
+    );
+    expect(firstCall[2]).toEqual({
+      flag: "wx+"
+    });
+  });
+
+  test.only("creates migration for content model with field updates", () => {
+    const contentfulExport = {
+      contentTypes: [
+        {
+          id: "homePage",
+          name: "Home Page",
+          description: "Basic Page type for Home pages",
+          fields: [
+            {
+              id: "headerText",
+              name: "Header Text",
+              type: "Symbol",
+              required: true
+            },
+            {
+              id: "bodyText",
+              name: "Body Text",
+              type: "RichText",
+              required: true
+            }
+          ]
+        }
+      ]
+    };
+
+    const localContent = {
+      contentTypes: [
+        {
+          id: "homePage",
+          name: "Home Page",
+          description: "Basic Page type for Home pages",
+          fields: [
+            {
+              id: "headerText",
+              name: "Header Text",
+              type: "Symbol",
+              required: false
+            },
+            {
+              id: "bodyText",
+              name: "Body Text",
+              type: "RichText",
+              required: true
+            }
+          ]
+        }
+      ]
+    };
+
+    diff(contentfulExport, localContent);
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+    const [firstCall] = fs.writeFileSync.mock.calls;
+
+    expect(firstCall[0]).toMatch(/migrations\/\d+-homePage.js$/);
+    expect(firstCall[1]).toMatch(/migration.editContentType\("homePage"\)/g);
+    expect(firstCall[1]).toMatch(
+      migrationContent(`
+        contentType
+          .editField("headerText")
+          .required(false);
+     `)
     );
     expect(firstCall[2]).toEqual({
       flag: "wx+"
     });
   });
 });
+
+function migrationContent(strings) {
+  const regexpString = strings
+    .trim()
+    .replace(/\n\s+/g, "")
+    .split("(")
+    .join("\\(")
+    .split(")")
+    .join("\\)")
+    .split(".")
+    .join("(\\s+)?.");
+
+  return new RegExp(regexpString);
+}

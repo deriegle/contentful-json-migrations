@@ -2,6 +2,12 @@ const fs = require("fs");
 const path = require("path");
 
 const CONTENT_TYPE_FIELDS = ["id", "name", "description"];
+const DIFF_TYPES = {
+  NO_CHANGE: " ",
+  ADDITION: "+",
+  DELETION: "-",
+  UPDATE: "~"
+};
 
 class MigrationGeneratorService {
   constructor(contentfulJSON) {
@@ -45,15 +51,23 @@ module.exports = (migration) => {
   handleUpdateDiff(diff, index) {
     const original = this.contentfulJSON.contentTypes[index];
 
+    const fieldMigrations =
+      diff.fields &&
+      diff.fields.map(([changeType, fieldDiff], index) =>
+        this._buildFieldMigration(changeType, fieldDiff, diff, index)
+      );
+
     const migrationText = `
 module.exports = (migration) => {
-  const contentType = migration.editContentType('${original.id}');
+  const contentType = migration.editContentType("${original.id}");
 
   ${Object.keys(diff).map(k => {
     if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
-      return `contentType.${k}('${diff[k].__new}')`;
+      return `contentType.${k}("${diff[k].__new}")`;
     }
   })}
+
+  ${fieldMigrations}
 }
     `;
 
@@ -75,6 +89,17 @@ module.exports = (migration) => {
       "migrations",
       `${new Date().getTime()}-${contentTypeId}.js`
     );
+  }
+
+  _buildFieldMigration(changeType, fieldDiff, fullDiff, index) {
+    if (!changeType || !fieldDiff) {
+      return;
+    }
+    if (changeType == DIFF_TYPES.NO_CHANGE) {
+      return;
+    }
+
+    console.log(changeType, fieldDiff);
   }
 }
 
