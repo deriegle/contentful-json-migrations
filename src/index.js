@@ -1,6 +1,5 @@
-const fs = require("fs");
 const jsonDiff = require("json-diff");
-const path = require("path");
+const MigrationGeneratorService = require("./models/migration-generator-service");
 
 const DIFF_TYPES = {
   NO_CHANGE: " ",
@@ -9,67 +8,9 @@ const DIFF_TYPES = {
   UPDATE: "~"
 };
 
-const CONTENT_TYPE_FIELDS = ["id", "name", "description"];
-
-function createFileName(contentTypeId) {
-  return path.join(
-    __dirname,
-    "migrations",
-    `${new Date().getTime()}-${contentTypeId}.js`
-  );
-}
-
-function handleAdditionDiff(diff) {
-  const newContentType = diff;
-
-  const migrationText = `
-module.exports = (migration) => {
-  const contentType = migration.createContentType('${newContentType.id}');
-
-  ${newContentType.name && `contentType.name('${newContentType.name}')`}
-  ${newContentType.description &&
-    `contentType.description('${newContentType.description}')`}
-}
-    `;
-
-  fs.writeFileSync(createFileName(newContentType.id), migrationText, {
-    flag: "wx+"
-  });
-}
-
-function handleDeletionDiff(diff) {
-  const migrationText = `
-module.exports = (migration) => {
-  migration.deleteContentType('${diff.id}');
-}
-    `;
-
-  fs.writeFileSync(createFileName(diff.id), migrationText, {
-    flag: "wx+"
-  });
-}
-
-function handleUpdateDiff(diff, index, currentJSON) {
-  const original = currentJSON.contentTypes[index];
-
-  const migrationText = `
-module.exports = (migration) => {
-  const contentType = migration.editContentType('${original.id}');
-
-  ${Object.keys(diff).map(k => {
-    if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
-      return `contentType.${k}('${diff[k].__new}')`;
-    }
-  })}
-}
-    `;
-
-  fs.writeFileSync(createFileName(original.id), migrationText, {
-    flag: "wx+"
-  });
-}
-
 function buildMigrationsFromChanges(currentJSON, changes) {
+  const migrationGeneratorService = new MigrationGeneratorService(currentJSON);
+
   if (changes && changes.contentTypes && changes.contentTypes.length > 0) {
     changes.contentTypes.forEach(([changeType, diff], index) => {
       if (!diff || !changeType) {
@@ -80,11 +21,11 @@ function buildMigrationsFromChanges(currentJSON, changes) {
         case DIFF_TYPES.NO_CHANGE:
           return;
         case DIFF_TYPES.ADDITION:
-          return handleAdditionDiff(diff);
+          return migrationGeneratorService.handleAdditionDiff(diff);
         case DIFF_TYPES.DELETION:
-          return handleDeletionDiff(diff);
+          return migrationGeneratorService.handleDeletionDiff(diff);
         case DIFF_TYPES.UPDATE:
-          return handleUpdateDiff(diff, index, currentJSON);
+          return migrationGeneratorService.handleUpdateDiff(diff, index);
         default:
           throw new Error(`What the heck is this?: ${changeType}`);
       }
