@@ -53,6 +53,10 @@ module.exports = (migration) => {
   }
 
   _writeFile(contentTypeId, migration) {
+    if (!fs.existsSync("migrations")) {
+      fs.mkdirSync("migrations");
+    }
+
     fs.writeFileSync(this._createFileName(contentTypeId), migration, {
       flag: "wx+"
     });
@@ -60,7 +64,6 @@ module.exports = (migration) => {
 
   _createFileName(contentTypeId) {
     return path.join(
-      __dirname,
       "migrations",
       `${new Date().getTime()}-${contentTypeId}.js`
     );
