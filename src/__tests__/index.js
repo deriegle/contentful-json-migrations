@@ -1,4 +1,7 @@
 const diff = require("../index");
+const fs = require("fs");
+
+jest.mock("fs");
 
 const contentfulExport = {
   contentTypes: [
@@ -38,5 +41,6 @@ const localContent = {
 describe("Contentful diffing tool", () => {
   test("works", () => {
     expect(diff(contentfulExport, localContent)).not.toBeUndefined();
+    expect(fs.writeFileSync).toHaveBeenCalled();
   });
 });

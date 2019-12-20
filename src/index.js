@@ -1,4 +1,6 @@
+const fs = require("fs");
 const jsonDiff = require("json-diff");
+const path = require("path");
 
 const migrations = [];
 
@@ -11,23 +13,35 @@ const DIFF_TYPES = {
 
 const DEFAULT_CONTENT_TYPE_FIELDS = ["id", "name", "description"];
 
+function createFileName(contentTypeId) {
+  return path.join(
+    __dirname,
+    "migrations",
+    `${new Date().getTime()}-${contentTypeId}.js`
+  );
+}
+
 function handleUpdateDiff(diff, index, currentJSON) {
   const original = currentJSON.contentTypes[index];
 
-  const contentMigration = migration => {
-    const contentType = migration.editContentType(original.id);
+  const migrationText = `
+    module.exports = (migration) => {
+      const contentType = migration.editContentType(${original.id});
 
-    Object.keys(diff).forEach(k => {
-      if (
-        typeof diff[k] === "object" &&
-        DEFAULT_CONTENT_TYPE_FIELDS.includes(k)
-      ) {
-        contentType[k](diff[k].__new);
-      }
-    });
-  };
+      ${Object.keys(diff).map(k => {
+        if (
+          typeof diff[k] === "object" &&
+          DEFAULT_CONTENT_TYPE_FIELDS.includes(k)
+        ) {
+          return `contentType.${k}(${diff[k].__new})`;
+        }
+      })}
+    }
+    `;
 
-  migrations.push(contentMigration);
+  fs.writeFileSync(createFileName(original.id), migrationText, {
+    flag: "wx+"
+  });
 
   return contentMigration;
 }
