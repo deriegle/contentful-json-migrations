@@ -52,18 +52,18 @@ module.exports = (migration) => {
     this._writeFile(original.id, migrationText);
   }
 
+  _writeFile(contentTypeId, migration) {
+    fs.writeFileSync(this._createFileName(contentTypeId), migration, {
+      flag: "wx+"
+    });
+  }
+
   _createFileName(contentTypeId) {
     return path.join(
       __dirname,
       "migrations",
       `${new Date().getTime()}-${contentTypeId}.js`
     );
-  }
-
-  _writeFile(contentTypeId, migration) {
-    fs.writeFileSync(this._createFileName(contentTypeId), migration, {
-      flag: "wx+"
-    });
   }
 }
 
