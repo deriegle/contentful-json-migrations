@@ -9,7 +9,7 @@ const DIFF_TYPES = {
   UPDATE: "~"
 };
 
-const DEFAULT_CONTENT_TYPE_FIELDS = ["id", "name", "description"];
+const CONTENT_TYPE_FIELDS = ["id", "name", "description"];
 
 function createFileName(contentTypeId) {
   return path.join(
@@ -23,16 +23,28 @@ function handleAdditionDiff(diff) {
   const newContentType = diff;
 
   const migrationText = `
-    module.exports = (migration) => {
-      const contentType = migration.createContentType('${newContentType.id}');
+module.exports = (migration) => {
+  const contentType = migration.createContentType('${newContentType.id}');
 
-      ${newContentType.name && `contentType.name('${newContentType.name}')`}
-      ${newContentType.description &&
-        `contentType.description('${newContentType.description}')`}
-    }
+  ${newContentType.name && `contentType.name('${newContentType.name}')`}
+  ${newContentType.description &&
+    `contentType.description('${newContentType.description}')`}
+}
     `;
 
   fs.writeFileSync(createFileName(newContentType.id), migrationText, {
+    flag: "wx+"
+  });
+}
+
+function handleDeletionDiff(diff) {
+  const migrationText = `
+module.exports = (migration) => {
+  migration.deleteContentType('${diff.id}');
+}
+    `;
+
+  fs.writeFileSync(createFileName(diff.id), migrationText, {
     flag: "wx+"
   });
 }
@@ -45,10 +57,7 @@ module.exports = (migration) => {
   const contentType = migration.editContentType('${original.id}');
 
   ${Object.keys(diff).map(k => {
-    if (
-      typeof diff[k] === "object" &&
-      DEFAULT_CONTENT_TYPE_FIELDS.includes(k)
-    ) {
+    if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
       return `contentType.${k}('${diff[k].__new}')`;
     }
   })}
@@ -69,15 +78,15 @@ function buildMigrationsFromChanges(currentJSON, changes) {
 
       switch (changeType) {
         case DIFF_TYPES.NO_CHANGE:
-          return console.log("No change");
+          return;
         case DIFF_TYPES.ADDITION:
           return handleAdditionDiff(diff);
         case DIFF_TYPES.DELETION:
-          return console.log("DELETION", diff);
+          return handleDeletionDiff(diff);
         case DIFF_TYPES.UPDATE:
           return handleUpdateDiff(diff, index, currentJSON);
         default:
-          throw new Error(`I don\'t know about this: ${changeType}`);
+          throw new Error(`What the heck is this?: ${changeType}`);
       }
     });
   }
@@ -91,6 +100,4 @@ module.exports = (contentfulExport, localContent) => {
   }
 
   buildMigrationsFromChanges(contentfulExport, changes);
-
-  return changes;
 };

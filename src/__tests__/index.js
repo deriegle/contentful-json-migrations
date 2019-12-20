@@ -4,7 +4,11 @@ const fs = require("fs");
 jest.mock("fs");
 
 describe("Contentful diffing tool", () => {
-  test("works", () => {
+  beforeEach(() => {
+    fs.writeFileSync.mockClear();
+  });
+
+  test("creates migrations for edits and creation of content types", () => {
     const contentfulExport = {
       contentTypes: [
         {
@@ -40,8 +44,8 @@ describe("Contentful diffing tool", () => {
       ]
     };
 
-    expect(diff(contentfulExport, localContent)).not.toBeUndefined();
-    expect(fs.writeFileSync).toHaveBeenCalled();
+    diff(contentfulExport, localContent);
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
 
     const [firstCall, secondCall] = fs.writeFileSync.mock.calls;
 
@@ -59,6 +63,44 @@ describe("Contentful diffing tool", () => {
     expect(secondCall[1]).toMatch(/contentType.name\('Third Page'\)/g);
     expect(secondCall[1]).toMatch(/contentType.description\('Third Page'\)/g);
     expect(secondCall[2]).toEqual({
+      flag: "wx+"
+    });
+  });
+
+  test("creates migrations for deleting content types", () => {
+    const contentfulExport = {
+      contentTypes: [
+        {
+          id: "homePage",
+          name: "Home Page",
+          description: "Basic Page type for Home pages"
+        },
+        {
+          id: "basicPage",
+          name: "Basic Page",
+          description: "Basic Page"
+        }
+      ]
+    };
+
+    const localContent = {
+      contentTypes: [
+        {
+          id: "homePage",
+          name: "Home Page",
+          description: "Basic Page type for Home pages"
+        }
+      ]
+    };
+
+    diff(contentfulExport, localContent);
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+    const [firstCall] = fs.writeFileSync.mock.calls;
+
+    expect(firstCall[0]).toMatch(/migrations\/\d+-basicPage.js$/);
+    expect(firstCall[1]).toMatch(/migration.deleteContentType\('basicPage'\)/g);
+    expect(firstCall[2]).toEqual({
       flag: "wx+"
     });
   });
