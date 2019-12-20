@@ -104,4 +104,51 @@ describe("Contentful diffing tool", () => {
       flag: "wx+"
     });
   });
+
+  test("creates migration for new content model with fields", () => {
+    const contentfulExport = {
+      contentTypes: []
+    };
+
+    const localContent = {
+      contentTypes: [
+        {
+          id: "homePage",
+          name: "Home Page",
+          description: "Basic Page type for Home pages",
+          fields: [
+            {
+              id: "headerText",
+              name: "Header Text",
+              type: "Symbol",
+              required: true
+            },
+            {
+              id: "bodyText",
+              name: "Body Text",
+              type: "RichText",
+              required: true
+            }
+          ]
+        }
+      ]
+    };
+
+    diff(contentfulExport, localContent);
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+    const [firstCall] = fs.writeFileSync.mock.calls;
+
+    expect(firstCall[0]).toMatch(/migrations\/\d+-homePage.js$/);
+    expect(firstCall[1]).toMatch(/migration.createContentType\('homePage'\)/g);
+    expect(firstCall[1]).toMatch(
+      /contentType.createField\('headerText'\).name\('Header Text'\).type\('Symbol'\).required\(true\);/
+    );
+    expect(firstCall[1]).toMatch(
+      /contentType.createField\('bodyText'\).name\('Body Text'\).type\('RichText'\).required\(true\);/
+    );
+    expect(firstCall[2]).toEqual({
+      flag: "wx+"
+    });
+  });
 });

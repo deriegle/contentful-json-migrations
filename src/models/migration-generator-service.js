@@ -11,6 +11,8 @@ class MigrationGeneratorService {
   handleAdditionDiff(diff) {
     const newContentType = diff;
 
+    console.log(diff);
+
     const migrationText = `
 module.exports = (migration) => {
   const contentType = migration.createContentType('${newContentType.id}');
@@ -18,8 +20,12 @@ module.exports = (migration) => {
   ${newContentType.name && `contentType.name('${newContentType.name}')`}
   ${newContentType.description &&
     `contentType.description('${newContentType.description}')`}
-}
-    `;
+
+    ${newContentType.fields &&
+      newContentType.fields.map(field => {
+        return `contentType.createField('${field.id}').name('${field.name}').type('${field.type}').required(${field.required});\n`;
+      })}
+`;
 
     this._writeFile(newContentType.id, migrationText);
   }
