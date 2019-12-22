@@ -169,7 +169,7 @@ describe("Contentful diffing tool", () => {
     });
   });
 
-  test.only("creates migration for content model with field updates", () => {
+  test("creates migration for content model with field updates", () => {
     const contentfulExport = {
       contentTypes: [
         {
@@ -229,7 +229,7 @@ describe("Contentful diffing tool", () => {
       migrationContent(`
         contentType
           .editField("headerText")
-          .required(false);
+          .required(false)
      `)
     );
     expect(firstCall[2]).toEqual({

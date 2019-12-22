@@ -17,8 +17,6 @@ class MigrationGeneratorService {
   handleAdditionDiff(diff) {
     const newContentType = diff;
 
-    console.log(diff);
-
     const migrationText = `module.exports = migration => {
   const contentType = migration.createContentType("${newContentType.id}");
 
@@ -53,8 +51,14 @@ module.exports = (migration) => {
 
     const fieldMigrations =
       diff.fields &&
-      diff.fields.map(([changeType, fieldDiff], index) =>
-        this._buildFieldMigration(changeType, fieldDiff, diff, index)
+      diff.fields.map(([changeType, fieldDiff], fieldIndex) =>
+        this._buildFieldMigration(
+          changeType,
+          fieldDiff,
+          diff,
+          fieldIndex,
+          index
+        )
       );
 
     const migrationText = `
@@ -91,7 +95,7 @@ module.exports = (migration) => {
     );
   }
 
-  _buildFieldMigration(changeType, fieldDiff, fullDiff, index) {
+  _buildFieldMigration(changeType, fieldDiff, fullDiff, fieldIndex, diffIndex) {
     if (!changeType || !fieldDiff) {
       return;
     }
@@ -99,7 +103,18 @@ module.exports = (migration) => {
       return;
     }
 
-    console.log(changeType, fieldDiff);
+    const currentField = this.contentfulJSON.contentTypes[diffIndex].fields[
+      fieldIndex
+    ];
+
+    return `
+      contentType.editField("${currentField.id}")
+        ${Object.keys(fieldDiff).map(k => {
+          if (typeof fieldDiff[k] === "object") {
+            return `.${k}(${fieldDiff[k].__new})`;
+          }
+        })}
+    `;
   }
 }
 
