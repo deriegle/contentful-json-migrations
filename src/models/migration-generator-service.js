@@ -52,13 +52,7 @@ module.exports = (migration) => {
     const fieldMigrations =
       diff.fields &&
       diff.fields.map(([changeType, fieldDiff], fieldIndex) =>
-        this._buildFieldMigration(
-          changeType,
-          fieldDiff,
-          diff,
-          fieldIndex,
-          index
-        )
+        this._buildFieldMigration(changeType, fieldDiff, fieldIndex, index)
       );
 
     const migrationText = `
@@ -95,7 +89,7 @@ module.exports = (migration) => {
     );
   }
 
-  _buildFieldMigration(changeType, fieldDiff, fullDiff, fieldIndex, diffIndex) {
+  _buildFieldMigration(changeType, fieldDiff, fieldIndex, diffIndex) {
     if (!changeType || !fieldDiff) {
       return;
     }
@@ -111,7 +105,11 @@ module.exports = (migration) => {
       contentType.editField("${currentField.id}")
         ${Object.keys(fieldDiff).map(k => {
           if (typeof fieldDiff[k] === "object") {
-            return `.${k}(${fieldDiff[k].__new})`;
+            const newValue = fieldDiff[k].__new;
+
+            return typeof newValue === "string"
+              ? `.${k}("${newValue}")`
+              : `.${k}(${newValue})`;
           }
         })}
     `;

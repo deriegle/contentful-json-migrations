@@ -203,7 +203,7 @@ describe("Contentful diffing tool", () => {
           fields: [
             {
               id: "headerText",
-              name: "Header Text",
+              name: "Header Copy",
               type: "Symbol",
               required: false
             },
@@ -229,6 +229,7 @@ describe("Contentful diffing tool", () => {
       migrationContent(`
         contentType
           .editField("headerText")
+          .name("Header Copy")
           .required(false)
      `)
     );
