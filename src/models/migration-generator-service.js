@@ -55,16 +55,17 @@ module.exports = (migration) => {
         this._buildFieldMigration(changeType, fieldDiff, fieldIndex, index)
       );
 
+    const contentTypeEdits = Object.keys(diff).map(k => {
+      if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
+        return `contentType.${k}("${diff[k].__new}")`;
+      }
+    });
+
     const migrationText = `
 module.exports = (migration) => {
   const contentType = migration.editContentType("${original.id}");
 
-  ${Object.keys(diff).map(k => {
-    if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
-      return `contentType.${k}("${diff[k].__new}")`;
-    }
-  })}
-
+  ${contentTypeEdits}
   ${fieldMigrations}
 }
     `;
@@ -101,18 +102,25 @@ module.exports = (migration) => {
       fieldIndex
     ];
 
-    return `
-      contentType.editField("${currentField.id}")
-        ${Object.keys(fieldDiff).map(k => {
-          if (typeof fieldDiff[k] === "object") {
-            const newValue = fieldDiff[k].__new;
+    const fieldEdits = Object.keys(fieldDiff)
+      .map(key => {
+        if (typeof fieldDiff[key] !== "object") {
+          return;
+        }
 
-            return typeof newValue === "string"
-              ? `.${k}("${newValue}")`
-              : `.${k}(${newValue})`;
-          }
-        })}
-    `;
+        const newValue = fieldDiff[key].__new;
+
+        return typeof newValue === "string"
+          ? `.${key}("${newValue}")`
+          : `.${key}(${newValue})`;
+      })
+      .filter(s => s)
+      .join("\n");
+
+    return `
+    contentType.editField("${currentField.id}")
+    ${fieldEdits}
+  `;
   }
 }
 

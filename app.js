@@ -28,7 +28,7 @@ app(
           {
             id: "headerText",
             name: "Header Copy",
-            type: "Symbol",
+            type: "Text",
             required: false
           }
         ]
