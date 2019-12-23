@@ -3,7 +3,34 @@
     {
       "id": "homePage",
       "name": "Home Page",
-      "description": "Basic Home Page model"
+      "description": "Basic Page type for Home pages",
+      "fields": [
+        {
+          "id": "headerText",
+          "name": "Header Copy",
+          "type": "RichText",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "blogPage",
+      "name": "Blog Page",
+      "description": "Basic Page type for Blogs",
+      "fields": [
+        {
+          "id": "headerText",
+          "name": "Header Copy",
+          "type": "Symbol",
+          "required": false
+        },
+        {
+          "id": "body",
+          "name": "Body Copy",
+          "type": "RichText",
+          "required": true
+        }
+      ]
     }
   ]
 }
