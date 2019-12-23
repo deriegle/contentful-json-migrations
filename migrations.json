@@ -1,0 +1,9 @@
+{
+  "contentTypes": [
+    {
+      "id": "homePage",
+      "name": "Home Page",
+      "description": "Basic Home Page model"
+    }
+  ]
+}

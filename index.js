@@ -3,31 +3,39 @@
 const fs = require("fs");
 const App = require("./src/index");
 
-const argv = require("yargs")
+require("yargs")
+  .scriptName("Contentful JSON migrations")
+  .usage("$0 <cmd> [args]")
   .command(
-    "create:migrations [JSON file]",
-    "Create migrations from the JSON file diff",
-    args => {
-      args.positional("path", {
-        describe: "path to json file with migrations in it",
-        default: "migrations.json"
+    "create:migrations [filePath]",
+    "Create migrations from diff in JSON file",
+    yargs => {
+      yargs.positional("filePath", {
+        type: "string",
+        default: "./migrations.json",
+        describe: "the file path to the JSON migration file"
       });
+    },
+    function(argv) {
+      const path = argv.filePath;
+
+      if (!fs.existsSync(path)) {
+        throw new Error("Path is invalid.");
+      }
+
+      if (!path.endsWith(".json")) {
+        throw new Error("File must be a JSON file");
+      }
+
+      try {
+        const currentMigrations = require(path);
+
+        App({ contentTypes: [] }, currentMigrations);
+      } catch (e) {
+        console.error(e);
+
+        throw new Error("Could not parse JSON file");
+      }
     }
   )
-  .demandCommand()
-  .help();
-
-const path = argv.path;
-
-if (!fs.existsSync(path)) {
-  throw new Error("Path is invalid.");
-}
-
-if (!path.endsWith(".json")) {
-  throw new Error("File must be a JSON file");
-}
-
-const currentMigrations = require(path);
-
-// pull from contentful/pass in contentful params to pull down contentful data
-App({}, currentMigrations);
+  .help().argv;
