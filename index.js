@@ -28,9 +28,14 @@ require("yargs")
       }
 
       try {
-        const currentMigrations = require(path);
+        const currentLocalMigrations = require(path);
 
-        App({ contentTypes: [] }, currentMigrations);
+        // Get from Contentful using CLI (Downloading to JSON file) or get using API
+        const currentContentfulMigrations = {
+          contentTypes: []
+        };
+
+        App(currentContentfulMigrations, currentLocalMigrations);
       } catch (e) {
         console.error(e);
 
