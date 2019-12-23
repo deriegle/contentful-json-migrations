@@ -237,6 +237,65 @@ describe("Contentful diffing tool", () => {
       flag: "wx+"
     });
   });
+
+  test("creates migration with multiple field updates", () => {
+    const contentfulExport = {
+      contentTypes: []
+    };
+
+    const localContent = {
+      contentTypes: [
+        {
+          id: "homePage",
+          name: "Home Page",
+          description: "Basic Page type for Home pages",
+          fields: [
+            {
+              id: "headerText",
+              name: "Header Copy",
+              type: "Symbol",
+              required: true
+            },
+            {
+              id: "bodyText",
+              name: "Body Text",
+              type: "RichText",
+              required: true
+            }
+          ]
+        }
+      ]
+    };
+
+    diff(contentfulExport, localContent);
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+    const [firstCall] = fs.writeFileSync.mock.calls;
+
+    expect(firstCall[0]).toMatch(/migrations\/\d+-homePage.js$/);
+    expect(firstCall[1]).toMatch(/migration.createContentType\("homePage"\)/g);
+    expect(firstCall[1]).toMatch(
+      migrationContent(`
+        contentType
+          .createField("headerText")
+          .name("Header Copy")
+          .type("Symbol")
+          .required(true);
+     `)
+    );
+    expect(firstCall[1]).toMatch(
+      migrationContent(`
+        contentType
+          .createField("bodyText")
+          .name("Body Text")
+          .type("RichText")
+          .required(true);
+     `)
+    );
+    expect(firstCall[2]).toEqual({
+      flag: "wx+"
+    });
+  });
 });
 
 function migrationContent(strings) {

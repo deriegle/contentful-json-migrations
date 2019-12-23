@@ -25,13 +25,15 @@ class MigrationGeneratorService {
     `contentType.description("${newContentType.description}");`}
 
   ${newContentType.fields &&
-    newContentType.fields.map(field => {
-      return `contentType
+    newContentType.fields
+      .map(field => {
+        return `contentType
     .createField("${field.id}")
     .name("${field.name}")
     .type("${field.type}")
     .required(${field.required});\n`;
-    })}};`;
+      })
+      .join("\n")}};`;
 
     this._writeFile(newContentType.id, migrationText);
   }
@@ -55,11 +57,13 @@ module.exports = (migration) => {
         this._buildFieldMigration(changeType, fieldDiff, fieldIndex, index)
       );
 
-    const contentTypeEdits = Object.keys(diff).map(k => {
-      if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
-        return `contentType.${k}("${diff[k].__new}")`;
-      }
-    });
+    const contentTypeEdits = Object.keys(diff)
+      .map(k => {
+        if (typeof diff[k] === "object" && CONTENT_TYPE_FIELDS.includes(k)) {
+          return `contentType.${k}("${diff[k].__new}")`;
+        }
+      })
+      .join("\n");
 
     const migrationText = `
 module.exports = (migration) => {

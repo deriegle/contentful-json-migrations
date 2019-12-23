@@ -28,8 +28,27 @@ app(
           {
             id: "headerText",
             name: "Header Copy",
-            type: "Text",
+            type: "RichText",
             required: false
+          }
+        ]
+      },
+      {
+        id: "blogPage",
+        name: "Blog Page",
+        description: "Basic Page type for Blogs",
+        fields: [
+          {
+            id: "headerText",
+            name: "Header Copy",
+            type: "Symbol",
+            required: false
+          },
+          {
+            id: "body",
+            name: "Body Copy",
+            type: "RichText",
+            required: true
           }
         ]
       }
