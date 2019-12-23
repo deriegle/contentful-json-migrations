@@ -1,10 +1,10 @@
 {
   "name": "contentful-json-migrations",
   "version": "1.0.0",
-  "main": "./src/index.js",
+  "main": "./index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node ./src/index.js",
+    "start": "node ./index.js",
     "test:watch": "jest --watch",
     "test": "jest"
   },
@@ -12,6 +12,7 @@
     "jest": "^24.9.0"
   },
   "dependencies": {
-    "json-diff": "^0.5.4"
+    "json-diff": "^0.5.4",
+    "yargs": "^15.0.2"
   }
 }
