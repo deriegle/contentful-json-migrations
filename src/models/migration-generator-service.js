@@ -1,5 +1,4 @@
-const fs = require("fs");
-const path = require("path");
+const MigrationFileService = require("./migration-file-service");
 
 const CONTENT_TYPE_FIELDS = ["id", "name", "description"];
 const DIFF_TYPES = {
@@ -12,6 +11,31 @@ const DIFF_TYPES = {
 class MigrationGeneratorService {
   constructor(contentfulJSON) {
     this.contentfulJSON = contentfulJSON;
+  }
+
+  build(changes) {
+    if (!changes || !changes.contentTypes || !changes.contentTypes.length) {
+      return;
+    }
+
+    return changes.contentTypes.map(([changeType, diff], index) => {
+      if (!diff || !changeType) {
+        return;
+      }
+
+      switch (changeType) {
+        case DIFF_TYPES.NO_CHANGE:
+          return;
+        case DIFF_TYPES.ADDITION:
+          return this.handleAdditionDiff(diff);
+        case DIFF_TYPES.DELETION:
+          return this.handleDeletionDiff(diff);
+        case DIFF_TYPES.UPDATE:
+          return this.handleUpdateDiff(diff, index);
+        default:
+          throw new Error(`What the heck is this?: ${changeType}`);
+      }
+    });
   }
 
   handleAdditionDiff(diff) {
@@ -35,7 +59,7 @@ class MigrationGeneratorService {
       })
       .join("\n")}};`;
 
-    this._writeFile(newContentType.id, migrationText);
+    MigrationFileService.writeMigration(newContentType.id, migrationText);
   }
 
   handleDeletionDiff(diff) {
@@ -45,7 +69,7 @@ module.exports = (migration) => {
 }
     `;
 
-    this._writeFile(diff.id, migrationText);
+    MigrationFileService.writeMigration(diff.id, migrationText);
   }
 
   handleUpdateDiff(diff, index) {
@@ -74,24 +98,7 @@ module.exports = (migration) => {
 }
     `;
 
-    this._writeFile(original.id, migrationText);
-  }
-
-  _writeFile(contentTypeId, migration) {
-    if (!fs.existsSync("migrations")) {
-      fs.mkdirSync("migrations");
-    }
-
-    fs.writeFileSync(this._createFileName(contentTypeId), migration, {
-      flag: "wx+"
-    });
-  }
-
-  _createFileName(contentTypeId) {
-    return path.join(
-      "migrations",
-      `${new Date().getTime()}-${contentTypeId}.js`
-    );
+    MigrationFileService.writeMigration(original.id, migrationText);
   }
 
   _buildFieldMigration(changeType, fieldDiff, fieldIndex, diffIndex) {
